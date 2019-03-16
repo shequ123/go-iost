@@ -216,7 +216,7 @@ func goMapKeys(cSbx C.SandboxPtr, key, ramPayer C.CStr, result *C.CStr, gasUsed 
 	fstr, cost = sbx.host.MapKeys(k)
 	j, err := json.Marshal(fstr)
 	if err != nil {
-		return C.CString(err.Error())
+		return C.CString(ErrGetSandbox.Error())
 	}
 	*gasUsed = C.size_t(cost.CPU)
 	result.SetString(string(j))
@@ -347,7 +347,7 @@ func goGlobalMapKeys(cSbx C.SandboxPtr, contractName, key, ramPayer C.CStr, resu
 	fstr, cost = sbx.host.GlobalMapKeys(c, k)
 	j, err := json.Marshal(fstr)
 	if err != nil {
-		return C.CString(err.Error())
+		return C.CString(ErrGetData.Error())
 	}
 	*gasUsed = C.size_t(cost.CPU)
 	result.SetString(string(j))

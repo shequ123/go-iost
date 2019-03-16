@@ -2,13 +2,12 @@ package native
 
 import (
 	"errors"
-
 	"fmt"
+	"strings"
 
 	"github.com/bitly/go-simplejson"
 	"github.com/iost-official/go-iost/core/contract"
 	"github.com/iost-official/go-iost/vm/host"
-	"strings"
 )
 
 // DomainABIs list of domain abi
@@ -73,7 +72,7 @@ var (
 			cost.AddAssign(c)
 			tij, err := simplejson.NewJson(txInfo)
 			if err != nil {
-				panic(err)
+				return nil, cost, errJSONData
 			}
 
 			applicant := tij.Get("publisher").MustString()
@@ -113,7 +112,7 @@ var (
 			cost.AddAssign(c)
 			tij, err := simplejson.NewJson(txInfo)
 			if err != nil {
-				panic(err)
+				return nil, cost, errJSONData
 			}
 
 			applicant := tij.Get("publisher").MustString()

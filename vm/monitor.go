@@ -59,6 +59,10 @@ func (m *Monitor) prepareContract(h *host.Host, contractName, api, jarg string) 
 	}
 
 	args, err = UnmarshalArgs(abi, jarg)
+	if err != nil {
+		txhash := h.Context().Value("tx_hash").(string)
+		err = getTxError(txhash, err)
+	}
 
 	return
 }
@@ -287,14 +291,14 @@ func UnmarshalArgs(abi *contract.ABI, data string) ([]interface{}, error) {
 	}
 	js, err := simplejson.NewJson([]byte(data))
 	if err != nil {
-		return nil, fmt.Errorf("error in data: %v, %v", err, data)
+		return nil, fmt.Errorf("error in data: invalid json, %v", data)
 	}
 
 	rtn := make([]interface{}, 0)
 	arr, err := js.Array()
 	if err != nil {
 		ilog.Error(js.EncodePretty())
-		return nil, fmt.Errorf("error args should be array, %v, %v", err, formatErrorArg(js))
+		return nil, fmt.Errorf("error args should be array, type assertion to []interface{} failed, %v", formatErrorArg(js))
 	}
 
 	if len(arr) != len(abi.Args) {
@@ -305,31 +309,31 @@ func UnmarshalArgs(abi *contract.ABI, data string) ([]interface{}, error) {
 		case "string":
 			s, err := js.GetIndex(i).String()
 			if err != nil {
-				return nil, fmt.Errorf("error parse string arg %v, %v", formatErrorArg(js.GetIndex(i)), err)
+				return nil, fmt.Errorf("error parse string arg %v, type assertion to string failed", formatErrorArg(js.GetIndex(i)))
 			}
 			rtn = append(rtn, s)
 		case "bool":
 			s, err := js.GetIndex(i).Bool()
 			if err != nil {
-				return nil, fmt.Errorf("error parse bool arg %v, %v", formatErrorArg(js.GetIndex(i)), err)
+				return nil, fmt.Errorf("error parse bool arg %v, type assertion to bool failed", formatErrorArg(js.GetIndex(i)))
 			}
 			rtn = append(rtn, s)
 		case "number":
 			s, err := js.GetIndex(i).Int64()
 			if err != nil {
-				return nil, fmt.Errorf("error parse number arg %v, %v", formatErrorArg(js.GetIndex(i)), err)
+				return nil, fmt.Errorf("error parse number arg %v, invalid value type", formatErrorArg(js.GetIndex(i)))
 			}
 			rtn = append(rtn, s)
 		case "json":
 			s, err := js.GetIndex(i).Encode()
 			if err != nil {
-				return nil, fmt.Errorf("error parse json arg %v, %v", formatErrorArg(js.GetIndex(i)), err)
+				return nil, fmt.Errorf("error parse json arg %v, invalid value type", formatErrorArg(js.GetIndex(i)))
 			}
 			// make sure s is a valid json
 			_, err = simplejson.NewJson(s)
 			if err != nil {
 				ilog.Error(string(s))
-				return nil, fmt.Errorf("error parse json arg %v, %v", formatErrorArg(js.GetIndex(i)), err)
+				return nil, fmt.Errorf("error parse json arg %v, invalid value type", formatErrorArg(js.GetIndex(i)))
 			}
 			rtn = append(rtn, s)
 		}

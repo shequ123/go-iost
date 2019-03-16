@@ -14,6 +14,8 @@ import (
 var (
 	// ErrGetSandbox error when GetSandbox failed.
 	ErrGetSandbox = errors.New("get sandbox failed")
+	// ErrGetData error when get data failed.
+	ErrGetData = errors.New("get data failed")
 )
 
 func newCStr(str string) C.CStr {

@@ -91,7 +91,7 @@ func getBalance(h *host.Host, tokenSym string, from string, ramPayer string) (ba
 	err = json.Unmarshal([]byte(freezeJSON.(database.SerializedJSON)), &freezeList)
 	cost.AddAssign(host.CommonOpCost(1))
 	if err != nil {
-		return balance, cost, err
+		return balance, cost, errJSONData
 	}
 
 	addBalance := int64(0)
@@ -116,7 +116,7 @@ func getBalance(h *host.Host, tokenSym string, from string, ramPayer string) (ba
 		freezeJSON, err = json.Marshal(freezeList)
 		cost.AddAssign(host.CommonOpCost(1))
 		if err != nil {
-			return balance, cost, err
+			return balance, cost, errJSONData
 		}
 		cost0, err = h.MapPut(TokenFreezeMapPrefix+from, tokenSym, database.SerializedJSON(freezeJSON.([]byte)))
 		cost.AddAssign(cost0)
@@ -137,7 +137,7 @@ func freezeBalance(h *host.Host, tokenSym string, from string, balance int64, ft
 		err = json.Unmarshal([]byte(freezeJSON.(database.SerializedJSON)), &freezeList)
 		cost.AddAssign(host.CommonOpCost(1))
 		if err != nil {
-			return cost, err
+			return cost, errJSONData
 		}
 	}
 
@@ -222,7 +222,7 @@ var (
 			err = json.Unmarshal(configJSON, &config)
 			cost.AddAssign(host.CommonOpCost(2))
 			if err != nil {
-				return nil, cost, err
+				return nil, cost, errJSONData
 			}
 			decimal := 8
 			canTransfer := true
@@ -316,7 +316,7 @@ var (
 			message, err := json.Marshal(args)
 			cost.AddAssign(host.CommonOpCost(1))
 			if err != nil {
-				return nil, cost, err
+				return nil, cost, errJSONData
 			}
 			cost0 = h.Receipt(string(message))
 			cost.AddAssign(cost0)
@@ -401,7 +401,7 @@ var (
 			message, err := json.Marshal(args)
 			cost.AddAssign(host.CommonOpCost(1))
 			if err != nil {
-				return nil, cost, err
+				return nil, cost, errJSONData
 			}
 			cost0 = h.Receipt(string(message))
 			cost.AddAssign(cost0)
@@ -522,7 +522,7 @@ var (
 			message, err := json.Marshal(args)
 			cost.AddAssign(host.CommonOpCost(1))
 			if err != nil {
-				return nil, cost, err
+				return nil, cost, errJSONData
 			}
 			cost0 = h.Receipt(string(message))
 			cost.AddAssign(cost0)
@@ -629,7 +629,7 @@ var (
 			message, err := json.Marshal(args)
 			cost.AddAssign(host.CommonOpCost(1))
 			if err != nil {
-				return nil, cost, err
+				return nil, cost, errJSONData
 			}
 			cost0 = h.Receipt(string(message))
 			cost.AddAssign(cost0)
@@ -715,7 +715,7 @@ var (
 			message, err := json.Marshal(args)
 			cost.AddAssign(host.CommonOpCost(1))
 			if err != nil {
-				return nil, cost, err
+				return nil, cost, errJSONData
 			}
 			cost0 = h.Receipt(string(message))
 			cost.AddAssign(cost0)

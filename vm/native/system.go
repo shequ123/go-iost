@@ -59,12 +59,12 @@ var (
 			if codeRaw[0] == '{' {
 				err = json.Unmarshal([]byte(codeRaw), con)
 				if err != nil {
-					return nil, host.CommonErrorCost(1), err
+					return nil, host.CommonErrorCost(1), errJSONData
 				}
 			} else {
 				err = con.B64Decode(codeRaw)
 				if err != nil {
-					return nil, host.CommonErrorCost(1), err
+					return nil, host.CommonErrorCost(1), errB64Decode
 				}
 			}
 
@@ -73,13 +73,13 @@ var (
 			var json *simplejson.Json
 			json, err = simplejson.NewJson(info)
 			if err != nil {
-				return nil, cost, err
+				return nil, cost, errJSONData
 			}
 
 			var id string
 			id, err = json.Get("hash").String()
 			if err != nil {
-				return nil, cost, err
+				return nil, cost, errJSONData
 			}
 			actID := "Contract" + id
 			con.ID = actID
@@ -120,12 +120,12 @@ var (
 			if codeRaw[0] == '{' {
 				err = json.Unmarshal([]byte(codeRaw), con)
 				if err != nil {
-					return nil, host.CommonErrorCost(1), err
+					return nil, host.CommonErrorCost(1), errJSONData
 				}
 			} else {
 				err = con.B64Decode(codeRaw)
 				if err != nil {
-					return nil, host.CommonErrorCost(1), err
+					return nil, host.CommonErrorCost(1), errB64Decode
 				}
 			}
 
@@ -154,7 +154,7 @@ var (
 			con := &contract.Contract{}
 			err = con.B64Decode(args[1].(string))
 			if err != nil {
-				return nil, host.CommonErrorCost(1), err
+				return nil, host.CommonErrorCost(1), errB64Decode
 			}
 
 			actID := args[0].(string)
@@ -201,12 +201,12 @@ var (
 				if codeRaw[0] == '{' {
 					err = json.Unmarshal([]byte(codeRaw), con)
 					if err != nil {
-						return nil, host.CommonErrorCost(1), err
+						return nil, host.CommonErrorCost(1), errJSONData
 					}
 				} else {
 					err = con.B64Decode(codeRaw)
 					if err != nil {
-						return nil, host.CommonErrorCost(1), err
+						return nil, host.CommonErrorCost(1), errB64Decode
 					}
 				}
 			}
@@ -232,7 +232,7 @@ var (
 			message, err := json.Marshal(args)
 			cost.AddAssign(host.CommonOpCost(1))
 			if err != nil {
-				return nil, cost, err
+				return nil, cost, errJSONData
 			}
 			cost.AddAssign(h.Receipt(string(message)))
 			return []interface{}{}, cost, err

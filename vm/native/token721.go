@@ -117,7 +117,7 @@ var (
 			message, err := json.Marshal(args)
 			cost.AddAssign(host.CommonOpCost(1))
 			if err != nil {
-				return nil, cost, err
+				return nil, cost, errJSONData
 			}
 			cost0 = h.Receipt(string(message))
 			cost.AddAssign(cost0)
@@ -200,7 +200,7 @@ var (
 			message, err := json.Marshal(args)
 			cost.AddAssign(host.CommonOpCost(1))
 			if err != nil {
-				return nil, cost, err
+				return nil, cost, errJSONData
 			}
 			cost0 = h.Receipt(string(message))
 			cost.AddAssign(cost0)
@@ -294,7 +294,7 @@ var (
 			message, err := json.Marshal(args)
 			cost.AddAssign(host.CommonOpCost(1))
 			if err != nil {
-				return nil, cost, err
+				return nil, cost, errJSONData
 			}
 			cost0 = h.Receipt(string(message))
 			cost.AddAssign(cost0)

@@ -286,7 +286,7 @@ func formatFuncArgs(args []interface{}) (string, error) {
 		default:
 			b, err := json.Marshal(v)
 			if err != nil {
-				return "", err
+				return "", errors.New("format args error")
 			}
 			strArgs = append(strArgs, string(b))
 		}
