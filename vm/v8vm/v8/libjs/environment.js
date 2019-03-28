@@ -491,7 +491,14 @@
     unescape = null;
 
     // Function
-    Function.prototype.toString = Object.prototype.toString;
+    const TE = TypeError;
+    Function.prototype.toString = function(){
+        if (!(this instanceof Function)) {
+            throw new TE;
+        }
+        let name = this.name === "toString" ? "toString" : "";
+        return `function ${name}() { [native code] }`;
+    };
     Function = null;
 
     // Error
