@@ -492,8 +492,9 @@
 
     // Function
     const TE = TypeError;
+    const FUNC = Function;
     Function.prototype.toString = function(){
-        if (!(this instanceof Function)) {
+        if (!(this instanceof FUNC)) {
             throw new TE;
         }
         let name = this.name === "toString" ? "toString" : "";
