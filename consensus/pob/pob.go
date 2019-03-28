@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/iost-official/go-iost/account"
+	"github.com/iost-official/go-iost/chainbase"
 	"github.com/iost-official/go-iost/common"
 	"github.com/iost-official/go-iost/consensus/synchro"
 	"github.com/iost-official/go-iost/core/block"
 	"github.com/iost-official/go-iost/core/blockcache"
-	"github.com/iost-official/go-iost/core/global"
 	"github.com/iost-official/go-iost/core/txpool"
 	"github.com/iost-official/go-iost/crypto"
 	"github.com/iost-official/go-iost/db"
@@ -39,21 +39,20 @@ var (
 	blockNumPerWitness = 6
 	maxBlockNumber     = int64(10000)
 	subSlotTime        = 500 * time.Millisecond
-	genBlockTime       = 400 * time.Millisecond
 	last2GenBlockTime  = 50 * time.Millisecond
 )
 
 //PoB is a struct that handles the consensus logic.
 type PoB struct {
-	account      *account.KeyPair
-	baseVariable global.BaseVariable
-	blockChain   block.Chain
-	blockCache   blockcache.BlockCache
-	txPool       txpool.TxPool
-	p2pService   p2p.Service
-	verifyDB     db.MVCCDB
-	produceDB    db.MVCCDB
-	sync         *synchro.Sync
+	account    *account.KeyPair
+	conf       *common.Config
+	blockChain block.Chain
+	blockCache blockcache.BlockCache
+	txPool     txpool.TxPool
+	p2pService p2p.Service
+	verifyDB   db.MVCCDB
+	produceDB  db.MVCCDB
+	sync       *synchro.Sync
 
 	exitSignal       chan struct{}
 	quitGenerateMode chan struct{}
@@ -62,10 +61,10 @@ type PoB struct {
 }
 
 // New init a new PoB.
-func New(baseVariable global.BaseVariable, blockCache blockcache.BlockCache, txPool txpool.TxPool, p2pService p2p.Service) *PoB {
+func New(conf *common.Config, chainBase *chainbase.ChainBase, txPool txpool.TxPool, p2pService p2p.Service) *PoB {
 	// TODO: Move the code to account struct.
-	accSecKey := baseVariable.Config().ACC.SecKey
-	accAlgo := baseVariable.Config().ACC.Algorithm
+	accSecKey := conf.ACC.SecKey
+	accAlgo := conf.ACC.Algorithm
 	account, err := account.NewKeyPair(common.Base58Decode(accSecKey), crypto.NewAlgorithm(accAlgo))
 	if err != nil {
 		ilog.Fatalf("NewKeyPair failed, stop the program! err:%v", err)
@@ -75,15 +74,15 @@ func New(baseVariable global.BaseVariable, blockCache blockcache.BlockCache, txP
 	metricsMode.Set(float64(2), nil)
 
 	p := PoB{
-		account:      account,
-		baseVariable: baseVariable,
-		blockChain:   baseVariable.BlockChain(),
-		blockCache:   blockCache,
-		txPool:       txPool,
-		p2pService:   p2pService,
-		verifyDB:     baseVariable.StateDB(),
-		produceDB:    baseVariable.StateDB().Fork(),
-		sync:         nil,
+		account:    account,
+		conf:       conf,
+		blockChain: chainBase.BlockChain(),
+		blockCache: chainBase.BlockCache(),
+		txPool:     txPool,
+		p2pService: p2pService,
+		verifyDB:   chainBase.StateDB(),
+		produceDB:  chainBase.StateDB().Fork(),
+		sync:       nil,
 
 		exitSignal:       make(chan struct{}),
 		quitGenerateMode: make(chan struct{}),
@@ -102,7 +101,7 @@ func (p *PoB) recoverBlockcache() error {
 	if err != nil {
 		ilog.Error("Failed to recover blockCache, err: ", err)
 		ilog.Info("Don't Recover, Move old file to BlockCacheWALCorrupted")
-		err = p.blockCache.NewWAL(p.baseVariable.Config())
+		err = p.blockCache.NewWAL(p.conf)
 		if err != nil {
 			ilog.Error(" Failed to NewWAL, err: ", err)
 		}
@@ -200,9 +199,9 @@ func (p *PoB) scheduleLoop() {
 			t := time.Now()
 			pTx, head := p.txPool.PendingTx()
 			witnessList := head.Active()
-			if slotFlag != slotOfSec(t.Unix()) && !p.sync.IsCatchingUp() && witnessOfNanoSec(t.UnixNano(), witnessList) == pubkey {
+			if slotFlag != slotOfNanoSec(t.UnixNano()) && !p.sync.IsCatchingUp() && witnessOfNanoSec(t.UnixNano(), witnessList) == pubkey {
 				p.quitGenerateMode = make(chan struct{})
-				slotFlag = slotOfSec(t.Unix())
+				slotFlag = slotOfNanoSec(t.UnixNano())
 				generateBlockTicker := time.NewTicker(subSlotTime)
 				for num := 0; num < blockNumPerWitness; num++ {
 					p.gen(num, pTx, head)
@@ -237,7 +236,7 @@ func (p *PoB) gen(num int, pTx *txpool.SortedTxMap, head *blockcache.BlockCacheN
 		generateBlockCount.Add(1, nil)
 	}()
 
-	limitTime := genBlockTime
+	limitTime := common.MaxBlockTimeLimit
 	if num >= blockNumPerWitness-2 {
 		limitTime = last2GenBlockTime
 	}
@@ -326,7 +325,7 @@ func (p *PoB) addExistingBlock(blk *block.Block, parentNode *blockcache.BlockCac
 	node, _ := p.blockCache.Find(blk.HeadHash())
 
 	if parentNode.Block.Head.Witness != blk.Head.Witness ||
-		slotOfSec(parentNode.Block.Head.Time/1e9) != slotOfSec(blk.Head.Time/1e9) {
+		slotOfNanoSec(parentNode.Block.Head.Time) != slotOfNanoSec(blk.Head.Time) {
 		node.SerialNum = 0
 	} else {
 		node.SerialNum = parentNode.SerialNum + 1

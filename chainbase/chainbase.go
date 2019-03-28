@@ -8,6 +8,7 @@ import (
 	"github.com/iost-official/go-iost/consensus/snapshot"
 	"github.com/iost-official/go-iost/core/block"
 	"github.com/iost-official/go-iost/core/blockcache"
+	"github.com/iost-official/go-iost/core/txpool"
 	"github.com/iost-official/go-iost/db"
 	"github.com/iost-official/go-iost/ilog"
 )
@@ -17,6 +18,7 @@ type ChainBase struct {
 	bChain  block.Chain
 	bCache  blockcache.BlockCache
 	stateDB db.MVCCDB
+	txPool  txpool.TxPool
 }
 
 // New will return a ChainBase.
@@ -50,10 +52,31 @@ func New(conf *common.Config) (*ChainBase, error) {
 		return nil, fmt.Errorf("new statedb failed, stop the program. err: %v", err)
 	}
 
-	return &ChainBase{
+	c := &ChainBase{
 		bChain:  bChain,
 		stateDB: stateDB,
-	}, nil
+	}
+
+	if err := c.checkGenesis(conf); err != nil {
+		return nil, fmt.Errorf("Check genesis failed: %v", err)
+	}
+	if err := c.recoverDB(conf); err != nil {
+		return nil, fmt.Errorf("Recover DB failed: %v", err)
+	}
+
+	bCache, err := blockcache.NewBlockCache(conf, bChain, stateDB)
+	if err != nil {
+		return nil, fmt.Errorf("blockcache initialization failed, stop the program! err:%v", err)
+	}
+	c.bCache = bCache
+
+	return c, nil
+}
+
+// Close will close the chainbase.
+func (c *ChainBase) Close() {
+	c.bChain.Close()
+	c.stateDB.Close()
 }
 
 // =============== Temporarily compatible ===============
@@ -66,4 +89,14 @@ func (c *ChainBase) StateDB() db.MVCCDB {
 // BlockChain return the block chain database.
 func (c *ChainBase) BlockChain() block.Chain {
 	return c.bChain
+}
+
+// BlockCache return the block cache.
+func (c *ChainBase) BlockCache() blockcache.BlockCache {
+	return c.bCache
+}
+
+// SetTxPool will inject the tx pool for chainbase.
+func (c *ChainBase) SetTxPool(txPool txpool.TxPool) {
+	c.txPool = txPool
 }
