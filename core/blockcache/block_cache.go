@@ -78,6 +78,20 @@ func (bcn *BlockCacheNode) SetParent(p *BlockCacheNode) {
 	bcn.parent = p
 	bcn.rw.Unlock()
 }
+
+// Temporary repair data race
+func (bcn *BlockCacheNode) setType(t BCNType) {
+	bcn.rw.Lock()
+	bcn.Type = t
+	bcn.rw.Unlock()
+}
+
+func (bcn *BlockCacheNode) nodeType() BCNType {
+	bcn.rw.RLock()
+	defer bcn.rw.RUnlock()
+	return bcn.Type
+}
+
 func (bcn *BlockCacheNode) addChild(child *BlockCacheNode) {
 	if child != nil {
 		bcn.Children[child] = true
@@ -553,7 +567,7 @@ func (bc *BlockCacheImpl) Link(bcn *BlockCacheNode, replay bool) {
 	if parent.Type != Linked {
 		return
 	}
-	bcn.Type = Linked
+	bcn.setType(Linked)
 	delete(bc.leaf, parent)
 	bc.leaf[bcn] = bcn.Head.Number
 	bcn.updateValidWitness()
@@ -845,7 +859,7 @@ func (bc *BlockCacheImpl) cutWALFiles(h *BlockCacheNode) error {
 // Find is find the block
 func (bc *BlockCacheImpl) Find(hash []byte) (*BlockCacheNode, error) {
 	bcn, ok := bc.hmget(hash)
-	if !ok || bcn.Type == Virtual {
+	if !ok || bcn.nodeType() == Virtual {
 		return nil, errors.New("block not found")
 	}
 	return bcn, nil
